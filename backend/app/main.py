@@ -21,10 +21,7 @@ load_dotenv()
 # LOGGING
 # =====================================================
 
-logging.basicConfig(
-    level=logging.INFO
-)
-
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -58,12 +55,25 @@ from app.api.feedback import router as feedback_router
 # =====================================================
 
 APP_TITLE = "Multi-Laboratory Medical Lab Portal"
-
 APP_VERSION = "1.0.0"
 
+# Set FRONTEND_URL in Render to your production Vercel URL.
 FRONTEND_URL = os.getenv(
     "FRONTEND_URL",
-    "http://localhost:5173"
+    "https://multi-laboratory-medical-lab-portal.vercel.app"
+).strip().rstrip("/")
+
+# Include the production domain and the specific preview URL
+# shown in the browser's CORS error.
+ALLOWED_ORIGINS = [
+    FRONTEND_URL,
+    "https://multi-laboratory-medical-lab-portal.vercel.app",
+    "https://multi-laboratory-medical-lab-portal-fg7hw5hq6.vercel.app",
+]
+
+# Remove duplicate origins and empty values.
+ALLOWED_ORIGINS = list(
+    dict.fromkeys(origin for origin in ALLOWED_ORIGINS if origin)
 )
 
 
@@ -83,27 +93,10 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-
-    allow_origins=[
-        FRONTEND_URL
-    ],
-
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-
-    allow_methods=[
-        "GET",
-        "POST",
-        "PUT",
-        "PATCH",
-        "DELETE",
-        "OPTIONS"
-    ],
-
-    allow_headers=[
-        "Authorization",
-        "Content-Type",
-        "Accept"
-    ]
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -116,14 +109,12 @@ async def global_exception_handler(
     request: Request,
     exc: Exception
 ):
-    # Log complete error on server
     logger.exception(
         "Unhandled exception on %s %s",
         request.method,
         request.url.path
     )
 
-    # Do not expose internal error details
     return JSONResponse(
         status_code=500,
         content={
@@ -137,42 +128,20 @@ async def global_exception_handler(
 # DATABASE TABLE CREATION
 # =====================================================
 
-Base.metadata.create_all(
-    bind=engine
-)
+Base.metadata.create_all(bind=engine)
 
 
 # =====================================================
 # API ROUTES
 # =====================================================
 
-app.include_router(
-    lab_router
-)
-
-app.include_router(
-    user_router
-)
-
-app.include_router(
-    auth_router
-)
-
-app.include_router(
-    lab_test_router
-)
-
-app.include_router(
-    booking_router
-)
-
-app.include_router(
-    report_router
-)
-
-app.include_router(
-    feedback_router
-)
+app.include_router(lab_router)
+app.include_router(user_router)
+app.include_router(auth_router)
+app.include_router(lab_test_router)
+app.include_router(booking_router)
+app.include_router(report_router)
+app.include_router(feedback_router)
 
 
 # =====================================================
@@ -197,11 +166,8 @@ def home():
 @app.get("/db-test")
 def database_test():
     try:
-
         with engine.connect() as connection:
-            connection.execute(
-                text("SELECT 1")
-            )
+            connection.execute(text("SELECT 1"))
 
         return {
             "success": True,
@@ -209,10 +175,7 @@ def database_test():
         }
 
     except Exception:
-
-        logger.exception(
-            "Database health check failed"
-        )
+        logger.exception("Database health check failed")
 
         return JSONResponse(
             status_code=503,
