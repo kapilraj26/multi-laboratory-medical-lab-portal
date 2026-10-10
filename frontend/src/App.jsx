@@ -1,13 +1,17 @@
+
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 
 import Navbar from './components/Navbar'
 import ProtectedRoute from './components/ProtectedRoute'
 
+// Public pages
 import Home from './pages/Home'
 import LaboratoryDetails from './pages/LaboratoryDetails'
 import TestDetails from './pages/TestDetails'
 import Login from './pages/Login'
 import Register from './pages/Register'
+
+// Patient pages
 import Booking from './pages/Booking'
 import MyBookings from './pages/MyBookings'
 import BookingDetails from './pages/BookingDetails'
@@ -15,9 +19,11 @@ import MyReports from './pages/MyReports'
 import Feedback from './pages/Feedback'
 import MyFeedback from './pages/MyFeedback'
 
+// Staff pages
 import StaffDashboard from './pages/StaffDashboard'
 import StaffReports from './pages/StaffReports'
 
+// Admin pages
 import AdminDashboard from './pages/AdminDashboard'
 import AdminStaff from './pages/AdminStaff'
 import AdminTests from './pages/AdminTests'
@@ -27,19 +33,12 @@ import AdminFeedback from './pages/AdminFeedback'
 
 
 function App() {
-
   return (
-
     <BrowserRouter>
-
       <Navbar />
 
       <Routes>
-
-
-        {/* ============================================
-            PUBLIC ROUTES
-        ============================================ */}
+        {/* PUBLIC ROUTES */}
 
         <Route
           path="/"
@@ -51,6 +50,13 @@ function App() {
           element={<Login />}
         />
 
+        {/* Public registration route */}
+        <Route
+          path="/register"
+          element={<Register />}
+        />
+
+        {/* Lab-specific registration route */}
         <Route
           path="/lab/:labId/register"
           element={<Register />}
@@ -67,16 +73,12 @@ function App() {
         />
 
 
-        {/* ============================================
-            PATIENT ROUTES
-        ============================================ */}
+        {/* PATIENT ROUTES */}
 
         <Route
           path="/lab/:labId/test/:testId/book"
           element={
-            <ProtectedRoute
-              allowedRoles={['Patient']}
-            >
+            <ProtectedRoute allowedRoles={['Patient']}>
               <Booking />
             </ProtectedRoute>
           }
@@ -85,9 +87,7 @@ function App() {
         <Route
           path="/my-bookings"
           element={
-            <ProtectedRoute
-              allowedRoles={['Patient']}
-            >
+            <ProtectedRoute allowedRoles={['Patient']}>
               <MyBookings />
             </ProtectedRoute>
           }
@@ -96,9 +96,7 @@ function App() {
         <Route
           path="/booking/:bookingId"
           element={
-            <ProtectedRoute
-              allowedRoles={['Patient']}
-            >
+            <ProtectedRoute allowedRoles={['Patient']}>
               <BookingDetails />
             </ProtectedRoute>
           }
@@ -107,9 +105,7 @@ function App() {
         <Route
           path="/my-reports"
           element={
-            <ProtectedRoute
-              allowedRoles={['Patient']}
-            >
+            <ProtectedRoute allowedRoles={['Patient']}>
               <MyReports />
             </ProtectedRoute>
           }
@@ -118,9 +114,7 @@ function App() {
         <Route
           path="/booking/:bookingId/feedback"
           element={
-            <ProtectedRoute
-              allowedRoles={['Patient']}
-            >
+            <ProtectedRoute allowedRoles={['Patient']}>
               <Feedback />
             </ProtectedRoute>
           }
@@ -129,25 +123,19 @@ function App() {
         <Route
           path="/my-feedback"
           element={
-            <ProtectedRoute
-              allowedRoles={['Patient']}
-            >
+            <ProtectedRoute allowedRoles={['Patient']}>
               <MyFeedback />
             </ProtectedRoute>
           }
         />
 
 
-        {/* ============================================
-            STAFF ROUTES
-        ============================================ */}
+        {/* STAFF ROUTES */}
 
         <Route
           path="/staff"
           element={
-            <ProtectedRoute
-              allowedRoles={['Staff']}
-            >
+            <ProtectedRoute allowedRoles={['Staff']}>
               <StaffDashboard />
             </ProtectedRoute>
           }
@@ -156,25 +144,19 @@ function App() {
         <Route
           path="/staff/reports"
           element={
-            <ProtectedRoute
-              allowedRoles={['Staff']}
-            >
+            <ProtectedRoute allowedRoles={['Staff']}>
               <StaffReports />
             </ProtectedRoute>
           }
         />
 
 
-        {/* ============================================
-            ADMIN ROUTES
-        ============================================ */}
+        {/* ADMIN ROUTES */}
 
         <Route
           path="/admin"
           element={
-            <ProtectedRoute
-              allowedRoles={['Admin']}
-            >
+            <ProtectedRoute allowedRoles={['Admin']}>
               <AdminDashboard />
             </ProtectedRoute>
           }
@@ -183,9 +165,7 @@ function App() {
         <Route
           path="/admin/staff"
           element={
-            <ProtectedRoute
-              allowedRoles={['Admin']}
-            >
+            <ProtectedRoute allowedRoles={['Admin']}>
               <AdminStaff />
             </ProtectedRoute>
           }
@@ -194,9 +174,7 @@ function App() {
         <Route
           path="/admin/tests"
           element={
-            <ProtectedRoute
-              allowedRoles={['Admin']}
-            >
+            <ProtectedRoute allowedRoles={['Admin']}>
               <AdminTests />
             </ProtectedRoute>
           }
@@ -205,9 +183,7 @@ function App() {
         <Route
           path="/admin/bookings"
           element={
-            <ProtectedRoute
-              allowedRoles={['Admin']}
-            >
+            <ProtectedRoute allowedRoles={['Admin']}>
               <AdminBookings />
             </ProtectedRoute>
           }
@@ -216,9 +192,7 @@ function App() {
         <Route
           path="/admin/reports"
           element={
-            <ProtectedRoute
-              allowedRoles={['Admin']}
-            >
+            <ProtectedRoute allowedRoles={['Admin']}>
               <AdminReports />
             </ProtectedRoute>
           }
@@ -227,22 +201,16 @@ function App() {
         <Route
           path="/admin/feedback"
           element={
-            <ProtectedRoute
-              allowedRoles={['Admin']}
-            >
+            <ProtectedRoute allowedRoles={['Admin']}>
               <AdminFeedback />
             </ProtectedRoute>
           }
         />
 
-
+        {/* Add a fallback later if you need a custom 404 page */}
       </Routes>
-
     </BrowserRouter>
-
   )
-
 }
-
 
 export default App
