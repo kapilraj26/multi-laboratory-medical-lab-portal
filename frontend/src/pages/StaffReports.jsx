@@ -1,16 +1,14 @@
+
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
-
+import api from '../api'
 
 function StaffReports() {
-
   const navigate = useNavigate()
 
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-
   const [selectedBooking, setSelectedBooking] = useState(null)
 
   const [result, setResult] = useState('')
@@ -20,512 +18,311 @@ function StaffReports() {
   const [uploading, setUploading] = useState(false)
   const [success, setSuccess] = useState('')
 
-
-  // =========================
-  // LOAD BOOKINGS
-  // =========================
-
+  // Load bookings
   const loadBookings = async () => {
-
     const token = localStorage.getItem('access_token')
     const role = localStorage.getItem('role')
+
+    if (!token) {
+      navigate('/login')
+      setLoading(false)
+      return
+    }
+
+    if (role !== 'Staff') {
+      setError('Only laboratory staff can access this page.')
+      setLoading(false)
+      return
+    }
+
+    try {
+      setError('')
+
+      const response = await api.get('/bookings/lab/all', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      setBookings(response.data)
+    } catch (error) {
+      console.error('Unable to load bookings:', error)
+
+      const detail = error.response?.data?.detail
+
+      setError(
+        typeof detail === 'string'
+          ? detail
+          : 'Unable to load laboratory bookings'
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadBookings()
+  }, [])
+
+  // Select booking
+  const selectBooking = (booking) => {
+    setSelectedBooking(booking)
+    setResult('')
+    setRemarks('')
+    setPdfFile(null)
+    setError('')
+    setSuccess('')
+  }
+
+  // Upload report
+  const handleUpload = async (event) => {
+    event.preventDefault()
+
+    const token = localStorage.getItem('access_token')
 
     if (!token) {
       navigate('/login')
       return
     }
 
-    if (role !== 'Staff') {
-
-      setError(
-        'Only laboratory staff can access this page.'
-      )
-
-      setLoading(false)
-
-      return
-    }
-
-    try {
-
-      const response = await axios.get(
-        'http://127.0.0.1:8000/bookings/lab/all',
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      )
-
-      setBookings(response.data)
-
-    } catch (error) {
-
-      console.error(error)
-
-      setError(
-        error.response?.data?.detail ||
-        'Unable to load laboratory bookings'
-      )
-
-    } finally {
-
-      setLoading(false)
-
-    }
-  }
-
-
-  useEffect(() => {
-
-    loadBookings()
-
-  }, [])
-
-
-  // =========================
-  // SELECT BOOKING
-  // =========================
-
-  const selectBooking = (booking) => {
-
-    setSelectedBooking(booking)
-
-    setResult('')
-    setRemarks('')
-    setPdfFile(null)
-    setError('')
-    setSuccess('')
-
-  }
-
-
-  // =========================
-  // UPLOAD REPORT
-  // =========================
-
-  const handleUpload = async (event) => {
-
-    event.preventDefault()
-
-    const token = localStorage.getItem(
-      'access_token'
-    )
-
-
     if (!selectedBooking) {
-
-      setError(
-        'Please select a booking.'
-      )
-
+      setError('Please select a booking.')
       return
     }
-
 
     if (!pdfFile) {
-
-      setError(
-        'Please select a PDF report.'
-      )
-
+      setError('Please select a PDF report.')
       return
     }
 
-
-    if (
-      pdfFile.type !==
-      'application/pdf'
-    ) {
-
-      setError(
-        'Only PDF files are allowed.'
-      )
-
+    if (pdfFile.type !== 'application/pdf') {
+      setError('Only PDF files are allowed.')
       return
     }
-
 
     setUploading(true)
     setError('')
     setSuccess('')
 
-
     try {
-
       const formData = new FormData()
 
       formData.append(
         'booking_id',
         selectedBooking.booking_id
       )
+      formData.append('result', result)
+      formData.append('remarks', remarks)
+      formData.append('report_pdf', pdfFile)
 
-      formData.append(
-        'result',
-        result
-      )
-
-      formData.append(
-        'remarks',
-        remarks
-      )
-
-      formData.append(
-        'report_pdf',
-        pdfFile
-      )
-
-
-      await axios.post(
-
-        'http://127.0.0.1:8000/reports/',
-
-        formData,
-
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-
-      )
-
+      await api.post('/reports/', formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
 
       setSuccess(
         `Report uploaded successfully for Booking #${selectedBooking.booking_id}.`
       )
-
 
       setSelectedBooking(null)
       setResult('')
       setRemarks('')
       setPdfFile(null)
 
-
+      await loadBookings()
     } catch (error) {
+      console.error('Unable to upload report:', error)
 
-      console.error(error)
+      const detail = error.response?.data?.detail
 
       setError(
-        error.response?.data?.detail ||
-        'Unable to upload report'
+        typeof detail === 'string'
+          ? detail
+          : 'Unable to upload report'
       )
-
     } finally {
-
       setUploading(false)
-
     }
-
   }
 
-
-  // =========================
-  // LOADING
-  // =========================
-
+  // Loading
   if (loading) {
-
     return (
-
       <div className="container text-center py-5">
-
         <div
           className="spinner-border text-primary"
           role="status"
         />
-
-        <p className="mt-3">
-          Loading bookings...
-        </p>
-
+        <p className="mt-3">Loading bookings...</p>
       </div>
-
     )
   }
 
+  const completedBookings = bookings.filter(
+    (booking) => booking.status === 'Completed'
+  )
 
   return (
-
     <div className="container py-5">
-
-      {/* =========================
-          HEADER
-      ========================= */}
-
+      {/* Header */}
       <div className="d-flex justify-content-between align-items-center mb-4">
-
         <div>
-
-          <h2 className="fw-bold">
-            Staff Report Management
-          </h2>
-
+          <h2 className="fw-bold">Staff Report Management</h2>
           <p className="text-muted mb-0">
             Upload medical reports for completed bookings
           </p>
-
         </div>
 
-
         <button
+          type="button"
           className="btn btn-outline-secondary"
-          onClick={() =>
-            navigate('/staff')
-          }
+          onClick={() => navigate('/staff')}
         >
           ← Staff Dashboard
         </button>
-
       </div>
 
-
-      {/* =========================
-          ERROR
-      ========================= */}
-
+      {/* Error */}
       {error && (
-
-        <div className="alert alert-danger">
+        <div className="alert alert-danger" role="alert">
           {error}
         </div>
-
       )}
 
-
-      {/* =========================
-          SUCCESS
-      ========================= */}
-
+      {/* Success */}
       {success && (
-
-        <div className="alert alert-success">
+        <div className="alert alert-success" role="alert">
           {success}
         </div>
-
       )}
 
-
-      {/* =========================
-          BOOKINGS
-      ========================= */}
-
+      {/* Completed Bookings */}
       <div className="card shadow-sm mb-4">
-
         <div className="card-body">
+          <h4 className="fw-bold mb-4">Completed Bookings</h4>
 
-          <h4 className="fw-bold mb-4">
-            Completed Bookings
-          </h4>
-
-
-          {bookings.filter(
-            (booking) =>
-              booking.status === 'Completed'
-          ).length === 0 ? (
-
+          {completedBookings.length === 0 ? (
             <div className="alert alert-info">
               No completed bookings available.
             </div>
-
           ) : (
-
             <div className="table-responsive">
-
               <table className="table table-hover align-middle">
-
                 <thead>
-
                   <tr>
-
-                    <th>
-                      Booking
-                    </th>
-
-                    <th>
-                      Patient
-                    </th>
-
-                    <th>
-                      Test
-                    </th>
-
-                    <th>
-                      Date
-                    </th>
-
-                    <th>
-                      Status
-                    </th>
-
-                    <th>
-                      Action
-                    </th>
-
+                    <th>Booking</th>
+                    <th>Patient</th>
+                    <th>Test</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Action</th>
                   </tr>
-
                 </thead>
 
-
                 <tbody>
+                  {completedBookings.map((booking) => (
+                    <tr key={booking.booking_id}>
+                      <td>#{booking.booking_id}</td>
+                      <td>#{booking.patient_id}</td>
+                      <td>#{booking.test_id}</td>
+                      <td>{booking.booking_date}</td>
 
-                  {bookings
-                    .filter(
-                      (booking) =>
-                        booking.status === 'Completed'
-                    )
-                    .map(
-                      (booking) => (
+                      <td>
+                        <span className="badge bg-success">
+                          Completed
+                        </span>
+                      </td>
 
-                        <tr
-                          key={
-                            booking.booking_id
-                          }
+                      <td>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-primary"
+                          onClick={() => selectBooking(booking)}
                         >
-
-                          <td>
-                            #{booking.booking_id}
-                          </td>
-
-                          <td>
-                            #{booking.patient_id}
-                          </td>
-
-                          <td>
-                            #{booking.test_id}
-                          </td>
-
-                          <td>
-                            {booking.booking_date}
-                          </td>
-
-                          <td>
-
-                            <span className="badge bg-success">
-                              Completed
-                            </span>
-
-                          </td>
-
-                          <td>
-
-                            <button
-                              className="btn btn-sm btn-primary"
-                              onClick={() =>
-                                selectBooking(
-                                  booking
-                                )
-                              }
-                            >
-                              Upload Report
-                            </button>
-
-                          </td>
-
-                        </tr>
-
-                      )
-                    )}
-
+                          Upload Report
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
-
               </table>
-
             </div>
-
           )}
-
         </div>
-
       </div>
 
-
-      {/* =========================
-          UPLOAD FORM
-      ========================= */}
-
+      {/* Upload Form */}
       {selectedBooking && (
-
         <div className="card shadow-sm">
-
           <div className="card-body p-4">
-
-            <h4 className="fw-bold">
-              Upload Report
-            </h4>
+            <h4 className="fw-bold">Upload Report</h4>
 
             <p className="text-muted">
               Booking #{selectedBooking.booking_id}
             </p>
 
-
             <hr />
 
-
             <form onSubmit={handleUpload}>
-
-              {/* RESULT */}
-
+              {/* Result */}
               <div className="mb-3">
-
-                <label className="form-label fw-bold">
+                <label
+                  htmlFor="testResult"
+                  className="form-label fw-bold"
+                >
                   Test Result
                 </label>
 
                 <textarea
+                  id="testResult"
                   className="form-control"
                   rows="4"
                   placeholder="Enter test result..."
                   value={result}
                   onChange={(event) =>
-                    setResult(
-                      event.target.value
-                    )
+                    setResult(event.target.value)
                   }
                 />
-
               </div>
 
-
-              {/* REMARKS */}
-
+              {/* Remarks */}
               <div className="mb-3">
-
-                <label className="form-label fw-bold">
+                <label
+                  htmlFor="remarks"
+                  className="form-label fw-bold"
+                >
                   Remarks
                 </label>
 
                 <textarea
+                  id="remarks"
                   className="form-control"
                   rows="3"
                   placeholder="Enter remarks..."
                   value={remarks}
                   onChange={(event) =>
-                    setRemarks(
-                      event.target.value
-                    )
+                    setRemarks(event.target.value)
                   }
                 />
-
               </div>
 
-
               {/* PDF */}
-
               <div className="mb-4">
-
-                <label className="form-label fw-bold">
+                <label
+                  htmlFor="reportPdf"
+                  className="form-label fw-bold"
+                >
                   Medical Report PDF
                 </label>
 
                 <input
+                  id="reportPdf"
                   type="file"
                   className="form-control"
-                  accept="application/pdf"
+                  accept="application/pdf,.pdf"
                   onChange={(event) =>
-                    setPdfFile(
-                      event.target.files[0]
-                    )
+                    setPdfFile(event.target.files?.[0] || null)
                   }
                   required
                 />
@@ -533,49 +330,36 @@ function StaffReports() {
                 <small className="text-muted">
                   Only PDF files are allowed.
                 </small>
-
               </div>
 
-
-              {/* BUTTONS */}
-
+              {/* Buttons */}
               <div className="d-flex gap-2">
-
                 <button
                   type="submit"
                   className="btn btn-primary"
                   disabled={uploading}
                 >
-                  {uploading
-                    ? 'Uploading...'
-                    : 'Upload Report'}
+                  {uploading ? 'Uploading...' : 'Upload Report'}
                 </button>
-
 
                 <button
                   type="button"
                   className="btn btn-outline-secondary"
-                  onClick={() =>
+                  disabled={uploading}
+                  onClick={() => {
                     setSelectedBooking(null)
-                  }
+                    setError('')
+                  }}
                 >
                   Cancel
                 </button>
-
               </div>
-
             </form>
-
           </div>
-
         </div>
-
       )}
-
     </div>
-
   )
 }
-
 
 export default StaffReports

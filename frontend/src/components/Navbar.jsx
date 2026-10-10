@@ -9,13 +9,12 @@ function Navbar() {
     localStorage.getItem('role')
   )
 
-  // Update navbar immediately after login or logout
+  // Update navbar after login or logout
   useEffect(() => {
     const handleAuthChange = () => {
       setRole(localStorage.getItem('role'))
     }
 
-    // Listen for authentication changes in this tab and other tabs
     window.addEventListener('auth-change', handleAuthChange)
     window.addEventListener('storage', handleAuthChange)
 
@@ -32,7 +31,6 @@ function Navbar() {
     localStorage.removeItem('role')
     localStorage.removeItem('lab_id')
 
-    // Immediately update the navbar
     window.dispatchEvent(new Event('auth-change'))
 
     setRole(null)
@@ -94,8 +92,21 @@ function Navbar() {
                 </li>
 
                 <li className="nav-item">
-                  <NavLink to="/login" className={getNavLinkClass}>
+                  <NavLink
+                    to="/login"
+                    className={getNavLinkClass}
+                  >
                     Login
+                  </NavLink>
+                </li>
+
+                {/* Register */}
+                <li className="nav-item">
+                  <NavLink
+                    to="/register"
+                    className={getNavLinkClass}
+                  >
+                    Register
                   </NavLink>
                 </li>
               </>
@@ -105,19 +116,28 @@ function Navbar() {
             {role === 'Patient' && (
               <>
                 <li className="nav-item">
-                  <NavLink to="/my-bookings" className={getNavLinkClass}>
+                  <NavLink
+                    to="/my-bookings"
+                    className={getNavLinkClass}
+                  >
                     My Bookings
                   </NavLink>
                 </li>
 
                 <li className="nav-item">
-                  <NavLink to="/my-reports" className={getNavLinkClass}>
+                  <NavLink
+                    to="/my-reports"
+                    className={getNavLinkClass}
+                  >
                     My Reports
                   </NavLink>
                 </li>
 
                 <li className="nav-item">
-                  <NavLink to="/my-feedback" className={getNavLinkClass}>
+                  <NavLink
+                    to="/my-feedback"
+                    className={getNavLinkClass}
+                  >
                     My Feedback
                   </NavLink>
                 </li>
@@ -138,13 +158,19 @@ function Navbar() {
             {role === 'Staff' && (
               <>
                 <li className="nav-item">
-                  <NavLink to="/staff" className={getNavLinkClass}>
+                  <NavLink
+                    to="/staff"
+                    className={getNavLinkClass}
+                  >
                     Dashboard
                   </NavLink>
                 </li>
 
                 <li className="nav-item">
-                  <NavLink to="/staff/reports" className={getNavLinkClass}>
+                  <NavLink
+                    to="/staff/reports"
+                    className={getNavLinkClass}
+                  >
                     Reports
                   </NavLink>
                 </li>
@@ -165,37 +191,55 @@ function Navbar() {
             {role === 'Admin' && (
               <>
                 <li className="nav-item">
-                  <NavLink to="/admin" className={getNavLinkClass}>
+                  <NavLink
+                    to="/admin"
+                    className={getNavLinkClass}
+                  >
                     Dashboard
                   </NavLink>
                 </li>
 
                 <li className="nav-item">
-                  <NavLink to="/admin/staff" className={getNavLinkClass}>
+                  <NavLink
+                    to="/admin/staff"
+                    className={getNavLinkClass}
+                  >
                     Staff
                   </NavLink>
                 </li>
 
                 <li className="nav-item">
-                  <NavLink to="/admin/tests" className={getNavLinkClass}>
+                  <NavLink
+                    to="/admin/tests"
+                    className={getNavLinkClass}
+                  >
                     Tests
                   </NavLink>
                 </li>
 
                 <li className="nav-item">
-                  <NavLink to="/admin/bookings" className={getNavLinkClass}>
+                  <NavLink
+                    to="/admin/bookings"
+                    className={getNavLinkClass}
+                  >
                     Bookings
                   </NavLink>
                 </li>
 
                 <li className="nav-item">
-                  <NavLink to="/admin/reports" className={getNavLinkClass}>
+                  <NavLink
+                    to="/admin/reports"
+                    className={getNavLinkClass}
+                  >
                     Reports
                   </NavLink>
                 </li>
 
                 <li className="nav-item">
-                  <NavLink to="/admin/feedback" className={getNavLinkClass}>
+                  <NavLink
+                    to="/admin/feedback"
+                    className={getNavLinkClass}
+                  >
                     Feedback
                   </NavLink>
                 </li>

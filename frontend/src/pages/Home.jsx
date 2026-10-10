@@ -1,10 +1,9 @@
+
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
-
+import api from '../api'
 
 function Home() {
-
   const navigate = useNavigate()
 
   const [labs, setLabs] = useState([])
@@ -12,83 +11,61 @@ function Home() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-
-  // =========================
-  // LOAD LABORATORIES
-  // =========================
-
+  // Load laboratories from the backend
   useEffect(() => {
+    let isMounted = true
 
-    axios
-      .get('http://127.0.0.1:8000/labs/')
-      .then((response) => {
+    const loadLaboratories = async () => {
+      try {
+        setLoading(true)
+        setError('')
 
-        setLabs(response.data)
-        setLoading(false)
+        const response = await api.get('/labs/')
 
-      })
-      .catch((error) => {
+        if (isMounted) {
+          setLabs(response.data)
+        }
+      } catch (error) {
+        console.error('Failed to load laboratories:', error)
 
-        console.error(error)
+        if (isMounted) {
+          setError('Unable to load laboratories. Please try again.')
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false)
+        }
+      }
+    }
 
-        setError(
-          'Unable to load laboratories'
-        )
+    loadLaboratories()
 
-        setLoading(false)
-
-      })
-
+    return () => {
+      isMounted = false
+    }
   }, [])
 
-
-  // =========================
-  // GET UNIQUE CITIES
-  // =========================
-
+  // Get unique cities
   const cities = [
-    ...new Set(
-      labs.map((lab) => lab.city)
-    )
+    ...new Set(labs.map((lab) => lab.city).filter(Boolean)),
   ]
 
-
-  // =========================
-  // FILTER LABORATORIES
-  // =========================
-
+  // Filter laboratories by selected city
   const filteredLabs = labs.filter(
-    (lab) =>
-      selectedCity === '' ||
-      lab.city === selectedCity
+    (lab) => selectedCity === '' || lab.city === selectedCity
   )
 
-
-  // =========================
-  // FIND LABORATORIES BUTTON
-  // =========================
-
+  // Find laboratories button
   const findLaboratories = () => {
-
-    document
-      .getElementById('laboratories')
-      ?.scrollIntoView({
-        behavior: 'smooth'
-      })
-
+    document.getElementById('laboratories')?.scrollIntoView({
+      behavior: 'smooth',
+    })
   }
 
-
   return (
-
     <div className="container py-5">
-
-      {/* =========================
-          HERO SECTION
-      ========================= */}
-
+      {/* Hero Section */}
       <div className="text-center py-5">
-
         <h1 className="display-4 fw-bold">
           Find a Laboratory Near You
         </h1>
@@ -97,21 +74,13 @@ function Home() {
           Search laboratories, book medical tests,
           and access your reports securely.
         </p>
-
       </div>
 
-
-      {/* =========================
-          LOCATION SECTION
-      ========================= */}
-
+      {/* Location Section */}
       <div
         className="card shadow-sm p-4 mx-auto"
-        style={{
-          maxWidth: '700px'
-        }}
+        style={{ maxWidth: '700px' }}
       >
-
         <h3 className="fw-bold mb-3">
           Select Your Location
         </h3>
@@ -120,275 +89,156 @@ function Home() {
           Choose your city to find available laboratories.
         </p>
 
-
         <select
           className="form-select form-select-lg"
           value={selectedCity}
-          onChange={(event) =>
-            setSelectedCity(
-              event.target.value
-            )
-          }
+          onChange={(event) => setSelectedCity(event.target.value)}
+          disabled={loading || cities.length === 0}
         >
-
-          <option value="">
-            Select City
-          </option>
-
+          <option value="">Select City</option>
 
           {cities.map((city) => (
-
-            <option
-              key={city}
-              value={city}
-            >
+            <option key={city} value={city}>
               {city}
             </option>
-
           ))}
-
         </select>
 
-
         <button
+          type="button"
           className="btn btn-primary btn-lg w-100 mt-4"
           onClick={findLaboratories}
+          disabled={loading || labs.length === 0}
         >
           Find Laboratories
         </button>
-
       </div>
 
-
-      {/* =========================
-          LOADING
-      ========================= */}
-
+      {/* Loading */}
       {loading && (
-
         <div className="text-center mt-5">
-
           <div
             className="spinner-border text-primary"
             role="status"
+            aria-label="Loading laboratories"
           />
 
-          <p className="mt-2">
-            Loading laboratories...
-          </p>
-
+          <p className="mt-2">Loading laboratories...</p>
         </div>
-
       )}
 
-
-      {/* =========================
-          ERROR
-      ========================= */}
-
-      {error && (
-
-        <div className="alert alert-danger mt-5">
+      {/* Error */}
+      {error && !loading && (
+        <div className="alert alert-danger mt-5" role="alert">
           {error}
-        </div>
 
+          <button
+            type="button"
+            className="btn btn-outline-danger btn-sm ms-3"
+            onClick={() => window.location.reload()}
+          >
+            Retry
+          </button>
+        </div>
       )}
 
-
-      {/* =========================
-          LABORATORIES
-      ========================= */}
-
+      {/* Laboratories */}
       {!loading && !error && (
-
-        <div
-          id="laboratories"
-          className="mt-5"
-        >
-
+        <div id="laboratories" className="mt-5">
           <h2 className="text-center fw-bold mb-4">
             Available Laboratories
           </h2>
 
-
           <div className="row g-4">
-
             {filteredLabs.length === 0 ? (
-
               <div className="col-12">
-
                 <div className="alert alert-warning text-center">
-                  No laboratories found for this location.
+                  {labs.length === 0
+                    ? 'No laboratories are currently available.'
+                    : 'No laboratories found for this location.'}
                 </div>
-
               </div>
-
             ) : (
-
               filteredLabs.map((lab) => (
-
-                <div
-                  className="col-md-6"
-                  key={lab.lab_id}
-                >
-
+                <div className="col-md-6" key={lab.lab_id}>
                   <div className="card h-100 shadow-sm">
-
                     <div className="card-body">
-
                       <h4 className="fw-bold">
                         {lab.lab_name}
                       </h4>
-
 
                       <p className="text-muted">
                         {lab.description ||
                           'Medical diagnostic laboratory'}
                       </p>
 
-
                       <p className="mb-1">
-
-                        <strong>
-                          📍 Location:
-                        </strong>{' '}
-
+                        <strong>📍 Location:</strong>{' '}
                         {lab.city}, {lab.state}
-
                       </p>
-
 
                       <p className="mb-1">
-
-                        <strong>
-                          📞 Phone:
-                        </strong>{' '}
-
-                        {lab.phone}
-
+                        <strong>📞 Phone:</strong> {lab.phone}
                       </p>
-
 
                       <p className="mb-3">
-
-                        <strong>
-                          ✉️ Email:
-                        </strong>{' '}
-
-                        {lab.email}
-
+                        <strong>✉️ Email:</strong> {lab.email}
                       </p>
 
-
-                      {/* VIEW LABORATORY */}
-
                       <button
+                        type="button"
                         className="btn btn-primary"
                         onClick={() =>
-                          navigate(
-                            `/lab/${lab.lab_id}`
-                          )
+                          navigate(`/lab/${lab.lab_id}`)
                         }
                       >
                         View Laboratory
                       </button>
-
                     </div>
-
                   </div>
-
                 </div>
-
               ))
-
             )}
-
           </div>
-
         </div>
-
       )}
 
-
-      {/* =========================
-          FEATURES
-      ========================= */}
-
+      {/* Features */}
       <div className="row mt-5 g-4">
-
-
-        {/* Multiple Laboratories */}
-
         <div className="col-md-4">
-
           <div className="card h-100 shadow-sm p-4 text-center">
-
             <h4>🏥</h4>
-
             <h5 className="fw-bold mt-3">
               Multiple Laboratories
             </h5>
-
             <p className="text-muted">
-              Choose from different laboratories
-              based on your location.
+              Choose from different laboratories based on your location.
             </p>
-
           </div>
-
         </div>
 
-
-        {/* Easy Booking */}
-
         <div className="col-md-4">
-
           <div className="card h-100 shadow-sm p-4 text-center">
-
             <h4>📅</h4>
-
-            <h5 className="fw-bold mt-3">
-              Easy Booking
-            </h5>
-
+            <h5 className="fw-bold mt-3">Easy Booking</h5>
             <p className="text-muted">
-              Book your required medical tests
-              online.
+              Book your required medical tests online.
             </p>
-
           </div>
-
         </div>
-
-
-        {/* Secure Reports */}
 
         <div className="col-md-4">
-
           <div className="card h-100 shadow-sm p-4 text-center">
-
             <h4>📄</h4>
-
-            <h5 className="fw-bold mt-3">
-              Secure Reports
-            </h5>
-
+            <h5 className="fw-bold mt-3">Secure Reports</h5>
             <p className="text-muted">
-              Access your medical reports
-              securely.
+              Access your medical reports securely.
             </p>
-
           </div>
-
         </div>
-
       </div>
-
     </div>
-
   )
-
 }
-
 
 export default Home

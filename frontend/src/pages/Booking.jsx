@@ -1,10 +1,9 @@
+
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import axios from 'axios'
-
+import api from '../api'
 
 function Booking() {
-
   const { labId, testId } = useParams()
   const navigate = useNavigate()
 
@@ -18,104 +17,67 @@ function Booking() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-
   const handleSubmit = async (event) => {
-
     event.preventDefault()
 
     setError('')
     setSuccess('')
 
-
-    // =========================
-    // CHECK LOGIN
-    // =========================
-
+    // Check login
     if (!token) {
-
       navigate('/login')
-
       return
     }
 
-
-    // =========================
-    // CHECK PATIENT ROLE
-    // =========================
-
+    // Check patient role
     if (role !== 'Patient') {
-
-      setError(
-        'Only patients can book medical tests.'
-      )
-
+      setError('Only patients can book medical tests.')
       return
     }
-
 
     setLoading(true)
 
-
     try {
-
-      await axios.post(
-
-        'http://127.0.0.1:8000/bookings/',
-
+      await api.post(
+        '/bookings/',
         {
           lab_id: Number(labId),
           test_id: Number(testId),
           booking_date: bookingDate,
-          booking_time: bookingTime
+          booking_time: bookingTime,
         },
-
         {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         }
-
       )
 
-
-      setSuccess(
-        'Booking created successfully!'
-      )
-
-
+      setSuccess('Booking created successfully!')
       setBookingDate('')
       setBookingTime('')
-
-
     } catch (error) {
+      console.error('Booking error:', error)
 
-      console.error(error)
+      const detail = error.response?.data?.detail
 
       setError(
-        error.response?.data?.detail ||
-        'Unable to create booking'
+        typeof detail === 'string'
+          ? detail
+          : 'Unable to create booking. Please try again.'
       )
-
     } finally {
-
       setLoading(false)
-
     }
-
   }
 
-
   return (
-
     <div className="container py-5">
-
       <div
         className="card shadow-sm mx-auto"
         style={{ maxWidth: '650px' }}
       >
-
         <div className="card-body p-4">
-
           <h2 className="fw-bold text-center">
             Book Medical Test
           </h2>
@@ -124,115 +86,78 @@ function Booking() {
             Select your preferred date and time
           </p>
 
-
-          {/* ERROR */}
-
           {error && (
-
-            <div className="alert alert-danger">
+            <div className="alert alert-danger" role="alert">
               {error}
             </div>
-
           )}
-
-
-          {/* SUCCESS */}
 
           {success && (
-
-            <div className="alert alert-success">
+            <div className="alert alert-success" role="alert">
               {success}
             </div>
-
           )}
 
-
           <form onSubmit={handleSubmit}>
-
-            {/* DATE */}
-
             <div className="mb-4">
-
-              <label className="form-label fw-bold">
+              <label htmlFor="bookingDate" className="form-label fw-bold">
                 Booking Date
               </label>
 
               <input
+                id="bookingDate"
                 type="date"
                 className="form-control"
                 value={bookingDate}
                 onChange={(event) =>
-                  setBookingDate(
-                    event.target.value
-                  )
+                  setBookingDate(event.target.value)
                 }
+                min={new Date().toLocaleDateString('en-CA')}
                 required
+                disabled={loading}
               />
-
             </div>
 
-
-            {/* TIME */}
-
             <div className="mb-4">
-
-              <label className="form-label fw-bold">
+              <label htmlFor="bookingTime" className="form-label fw-bold">
                 Booking Time
               </label>
 
               <input
+                id="bookingTime"
                 type="time"
                 className="form-control"
                 value={bookingTime}
                 onChange={(event) =>
-                  setBookingTime(
-                    event.target.value
-                  )
+                  setBookingTime(event.target.value)
                 }
                 required
+                disabled={loading}
               />
-
             </div>
-
-
-            {/* BOOK */}
 
             <button
               type="submit"
               className="btn btn-primary w-100"
               disabled={loading}
             >
-
-              {loading
-                ? 'Creating Booking...'
-                : 'Confirm Booking'}
-
+              {loading ? 'Creating Booking...' : 'Confirm Booking'}
             </button>
-
           </form>
 
-
-          {/* BACK */}
-
           <button
+            type="button"
             className="btn btn-outline-secondary w-100 mt-3"
             onClick={() =>
-              navigate(
-                `/lab/${labId}/test/${testId}`
-              )
+              navigate(`/lab/${labId}/test/${testId}`)
             }
           >
             ← Back to Test
           </button>
-
         </div>
-
       </div>
-
     </div>
-
   )
 }
-
 
 export default Booking

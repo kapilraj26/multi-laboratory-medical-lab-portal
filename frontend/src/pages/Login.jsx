@@ -1,9 +1,7 @@
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+import api from '../api'
 
 function Login() {
   const navigate = useNavigate()
@@ -20,23 +18,18 @@ function Login() {
     setError('')
 
     try {
-      const response = await axios.post(
-        `${API_URL}/auth/login`,
-        {
-          email: email.trim(),
-          password: password
-        }
-      )
+      const response = await api.post('/auth/login', {
+        email: email.trim(),
+        password: password,
+      })
 
       const data = response.data
 
-      // Validate the login response
       if (!data.access_token || !data.role) {
         setError('Invalid login response from server')
         return
       }
 
-      // Validate supported roles before saving login details
       const supportedRoles = ['Patient', 'Staff', 'Admin']
 
       if (!supportedRoles.includes(data.role)) {
@@ -44,16 +37,13 @@ function Login() {
         return
       }
 
-      // Store authentication information
       localStorage.setItem('access_token', data.access_token)
       localStorage.setItem('user_id', data.user_id ?? '')
       localStorage.setItem('role', data.role)
       localStorage.setItem('lab_id', data.lab_id ?? '')
 
-      // Update Navbar immediately without refreshing
       window.dispatchEvent(new Event('auth-change'))
 
-      // Redirect according to role
       if (data.role === 'Patient') {
         navigate('/', { replace: true })
       } else if (data.role === 'Staff') {
@@ -100,7 +90,6 @@ function Login() {
           )}
 
           <form onSubmit={handleLogin}>
-            {/* Email */}
             <div className="mb-3">
               <label htmlFor="email" className="form-label">
                 Email Address
@@ -119,7 +108,6 @@ function Login() {
               />
             </div>
 
-            {/* Password */}
             <div className="mb-3">
               <label htmlFor="password" className="form-label">
                 Password
@@ -138,7 +126,6 @@ function Login() {
               />
             </div>
 
-            {/* Login button */}
             <button
               type="submit"
               className="btn btn-primary w-100"

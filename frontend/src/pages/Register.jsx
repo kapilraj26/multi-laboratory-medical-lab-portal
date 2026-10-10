@@ -1,10 +1,9 @@
+
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import axios from 'axios'
-
+import api from '../api'
 
 function Register() {
-
   const { labId } = useParams()
   const navigate = useNavigate()
 
@@ -12,26 +11,21 @@ function Register() {
     name: '',
     email: '',
     password: '',
-    phone: ''
+    phone: '',
   })
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-
   const handleChange = (event) => {
-
     setFormData({
       ...formData,
-      [event.target.name]: event.target.value
+      [event.target.name]: event.target.value,
     })
-
   }
 
-
   const handleSubmit = async (event) => {
-
     event.preventDefault()
 
     setError('')
@@ -39,57 +33,43 @@ function Register() {
     setLoading(true)
 
     try {
-
-      await axios.post(
-        'http://127.0.0.1:8000/users/patient',
-        {
-          lab_id: Number(labId),
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          phone: formData.phone
-        }
-      )
+      await api.post('/users/patient', {
+        lab_id: Number(labId),
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        password: formData.password,
+        phone: formData.phone.trim(),
+      })
 
       setSuccess(
         'Registration successful! Redirecting to login...'
       )
 
       setTimeout(() => {
-
         navigate('/login')
-
       }, 1500)
-
     } catch (error) {
+      console.error('Registration error:', error)
 
-      console.error(error)
+      const detail = error.response?.data?.detail
 
       setError(
-        error.response?.data?.detail ||
-        'Registration failed'
+        typeof detail === 'string'
+          ? detail
+          : 'Registration failed. Please try again.'
       )
-
     } finally {
-
       setLoading(false)
-
     }
-
   }
 
-
   return (
-
     <div className="container py-5">
-
       <div
         className="card shadow-sm mx-auto"
         style={{ maxWidth: '600px' }}
       >
-
         <div className="card-body p-4">
-
           <h2 className="fw-bold text-center">
             Patient Registration
           </h2>
@@ -98,160 +78,131 @@ function Register() {
             Register for this laboratory
           </p>
 
-
           {error && (
-
-            <div className="alert alert-danger">
+            <div className="alert alert-danger" role="alert">
               {error}
             </div>
-
           )}
-
 
           {success && (
-
-            <div className="alert alert-success">
+            <div className="alert alert-success" role="alert">
               {success}
             </div>
-
           )}
 
-
           <form onSubmit={handleSubmit}>
-
-            {/* Name */}
-
             <div className="mb-3">
-
-              <label className="form-label fw-bold">
+              <label htmlFor="name" className="form-label fw-bold">
                 Full Name
               </label>
 
               <input
+                id="name"
                 type="text"
                 name="name"
                 className="form-control"
                 placeholder="Enter your name"
                 value={formData.name}
                 onChange={handleChange}
+                autoComplete="name"
                 required
+                disabled={loading}
               />
-
             </div>
 
-
-            {/* Email */}
-
             <div className="mb-3">
-
-              <label className="form-label fw-bold">
+              <label htmlFor="email" className="form-label fw-bold">
                 Email
               </label>
 
               <input
+                id="email"
                 type="email"
                 name="email"
                 className="form-control"
                 placeholder="Enter your email"
                 value={formData.email}
                 onChange={handleChange}
+                autoComplete="email"
                 required
+                disabled={loading}
               />
-
             </div>
 
-
-            {/* Phone */}
-
             <div className="mb-3">
-
-              <label className="form-label fw-bold">
+              <label htmlFor="phone" className="form-label fw-bold">
                 Phone Number
               </label>
 
               <input
+                id="phone"
                 type="tel"
                 name="phone"
                 className="form-control"
                 placeholder="Enter your phone number"
                 value={formData.phone}
                 onChange={handleChange}
+                autoComplete="tel"
+                disabled={loading}
               />
-
             </div>
 
-
-            {/* Password */}
-
             <div className="mb-4">
-
-              <label className="form-label fw-bold">
+              <label
+                htmlFor="password"
+                className="form-label fw-bold"
+              >
                 Password
               </label>
 
               <input
+                id="password"
                 type="password"
                 name="password"
                 className="form-control"
                 placeholder="Create a password"
                 value={formData.password}
                 onChange={handleChange}
+                autoComplete="new-password"
                 required
+                disabled={loading}
               />
-
             </div>
-
-
-            {/* Submit */}
 
             <button
               type="submit"
               className="btn btn-primary w-100"
               disabled={loading}
             >
-
-              {loading
-                ? 'Creating Account...'
-                : 'Create Account'}
-
+              {loading ? 'Creating Account...' : 'Create Account'}
             </button>
-
           </form>
 
-
           <div className="text-center mt-4">
-
             <span className="text-muted">
               Already have an account?
             </span>
 
             <button
+              type="button"
               className="btn btn-link"
               onClick={() => navigate('/login')}
             >
               Login
             </button>
-
           </div>
 
-
           <button
+            type="button"
             className="btn btn-outline-secondary w-100 mt-2"
-            onClick={() =>
-              navigate(`/lab/${labId}`)
-            }
+            onClick={() => navigate(`/lab/${labId}`)}
           >
             ← Back to Laboratory
           </button>
-
         </div>
-
       </div>
-
     </div>
-
   )
 }
-
 
 export default Register

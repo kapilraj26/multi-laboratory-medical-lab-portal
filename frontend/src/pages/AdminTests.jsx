@@ -1,853 +1,478 @@
-import { useEffect, useState } from 'react'
-import axios from 'axios'
 
+import { useEffect, useState } from 'react'
+import api from '../api'
 
 function AdminTests() {
-
   const [tests, setTests] = useState([])
-
   const [loading, setLoading] = useState(true)
-
   const [error, setError] = useState('')
-
   const [success, setSuccess] = useState('')
-
   const [showForm, setShowForm] = useState(false)
-
   const [editingTest, setEditingTest] = useState(null)
 
-
-  // =====================================================
-  // FORM STATES
-  // =====================================================
-
+  // Form states
   const [testName, setTestName] = useState('')
-
   const [description, setDescription] = useState('')
-
   const [category, setCategory] = useState('')
-
   const [price, setPrice] = useState('')
-
   const [duration, setDuration] = useState('')
 
+  // Authentication
+  const token = localStorage.getItem('access_token')
+  const role = localStorage.getItem('role')
 
-  // =====================================================
-  // AUTHENTICATION
-  // =====================================================
-
-  const token = localStorage.getItem(
-    'access_token'
-  )
-
-  const role = localStorage.getItem(
-    'role'
-  )
-
-
-  // =====================================================
-  // LOAD ALL TESTS
-  // ADMIN ONLY
-  // ACTIVE + INACTIVE
-  // =====================================================
-
+  // Load all tests
   const loadTests = async () => {
-
     try {
-
       setLoading(true)
-
       setError('')
 
-
-      const response = await axios.get(
-
-        'http://127.0.0.1:8000/lab-tests/admin/all',
-
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-
-      )
-
+      const response = await api.get('/lab-tests/admin/all', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
 
       setTests(response.data)
-
     } catch (error) {
+      console.error('Unable to load medical tests:', error)
 
-      console.error(error)
+      const detail = error.response?.data?.detail
 
       setError(
-        error.response?.data?.detail ||
-        'Unable to load medical tests'
+        typeof detail === 'string'
+          ? detail
+          : 'Unable to load medical tests'
       )
-
     } finally {
-
       setLoading(false)
-
     }
-
   }
 
-
-  // =====================================================
-  // PAGE LOAD
-  // =====================================================
-
+  // Page load
   useEffect(() => {
-
-    if (role !== 'Admin') {
-
+    if (!token || role !== 'Admin') {
       window.location.href = '/login'
-
       return
-
     }
-
 
     loadTests()
-
   }, [])
 
-
-  // =====================================================
-  // CLEAR FORM
-  // =====================================================
-
+  // Clear form
   const clearForm = () => {
-
     setTestName('')
-
     setDescription('')
-
     setCategory('')
-
     setPrice('')
-
     setDuration('')
-
     setEditingTest(null)
-
   }
 
-
-  // =====================================================
-  // EDIT TEST
-  // =====================================================
-
+  // Edit test
   const handleEdit = (test) => {
-
     setEditingTest(test)
-
-    setTestName(
-      test.test_name
-    )
-
-    setDescription(
-      test.description || ''
-    )
-
-    setCategory(
-      test.category || ''
-    )
-
-    setPrice(
-      test.price
-    )
-
-    setDuration(
-      test.duration_minutes
-    )
-
+    setTestName(test.test_name)
+    setDescription(test.description || '')
+    setCategory(test.category || '')
+    setPrice(String(test.price))
+    setDuration(String(test.duration_minutes))
     setShowForm(true)
-
     setSuccess('')
-
     setError('')
-
   }
 
-
-  // =====================================================
-  // ADD / UPDATE TEST
-  // =====================================================
-
+  // Add or update test
   const handleSubmit = async (event) => {
-
     event.preventDefault()
 
     setError('')
-
     setSuccess('')
 
-
-    try {
-
-      const testData = {
-
-        test_name: testName,
-
-        description: description,
-
-        category: category,
-
-        price: Number(price),
-
-        duration_minutes: Number(duration)
-
-      }
-
-
-      // =================================================
-      // UPDATE TEST
-      // =================================================
-
-      if (editingTest) {
-
-        await axios.put(
-
-          `http://127.0.0.1:8000/lab-tests/${editingTest.test_id}`,
-
-          testData,
-
-          {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          }
-
-        )
-
-
-        setSuccess(
-          'Medical test updated successfully'
-        )
-
-      }
-
-
-      // =================================================
-      // CREATE TEST
-      // =================================================
-
-      else {
-
-        await axios.post(
-
-          'http://127.0.0.1:8000/lab-tests/',
-
-          testData,
-
-          {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          }
-
-        )
-
-
-        setSuccess(
-          'Medical test created successfully'
-        )
-
-      }
-
-
-      clearForm()
-
-      setShowForm(false)
-
-      await loadTests()
-
-
-    } catch (error) {
-
-      console.error(error)
-
-      setError(
-        error.response?.data?.detail ||
-        'Unable to save medical test'
-      )
-
+    const testData = {
+      test_name: testName.trim(),
+      description: description.trim(),
+      category: category.trim(),
+      price: Number(price),
+      duration_minutes: Number(duration),
     }
 
+    try {
+      const headers = {
+        Authorization: `Bearer ${token}`,
+      }
+
+      if (editingTest) {
+        await api.put(
+          `/lab-tests/${editingTest.test_id}`,
+          testData,
+          { headers }
+        )
+
+        setSuccess('Medical test updated successfully')
+      } else {
+        await api.post('/lab-tests/', testData, { headers })
+
+        setSuccess('Medical test created successfully')
+      }
+
+      clearForm()
+      setShowForm(false)
+      await loadTests()
+    } catch (error) {
+      console.error('Unable to save medical test:', error)
+
+      const detail = error.response?.data?.detail
+
+      setError(
+        typeof detail === 'string'
+          ? detail
+          : 'Unable to save medical test'
+      )
+    }
   }
 
-
-  // =====================================================
-  // DEACTIVATE TEST
-  // =====================================================
-
+  // Deactivate test
   const handleDeactivate = async (testId) => {
-
     if (
       !window.confirm(
         'Are you sure you want to deactivate this medical test?'
       )
     ) {
-
       return
-
     }
-
 
     setError('')
-
     setSuccess('')
 
-
     try {
-
-      await axios.put(
-
-        `http://127.0.0.1:8000/lab-tests/${testId}/deactivate`,
-
+      await api.put(
+        `/lab-tests/${testId}/deactivate`,
         {},
-
         {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         }
-
       )
 
-
-      setSuccess(
-        'Medical test deactivated successfully'
-      )
-
-
+      setSuccess('Medical test deactivated successfully')
       await loadTests()
-
-
     } catch (error) {
+      console.error('Unable to deactivate medical test:', error)
 
-      console.error(error)
+      const detail = error.response?.data?.detail
 
       setError(
-        error.response?.data?.detail ||
-        'Unable to deactivate medical test'
+        typeof detail === 'string'
+          ? detail
+          : 'Unable to deactivate medical test'
       )
-
     }
-
   }
 
-
-  // =====================================================
-  // REACTIVATE TEST
-  // =====================================================
-
+  // Reactivate test
   const handleReactivate = async (testId) => {
-
     if (
       !window.confirm(
         'Are you sure you want to reactivate this medical test?'
       )
     ) {
-
       return
-
     }
-
 
     setError('')
-
     setSuccess('')
 
-
     try {
-
-      await axios.put(
-
-        `http://127.0.0.1:8000/lab-tests/${testId}/reactivate`,
-
+      await api.put(
+        `/lab-tests/${testId}/reactivate`,
         {},
-
         {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         }
-
       )
 
-
-      setSuccess(
-        'Medical test reactivated successfully'
-      )
-
-
+      setSuccess('Medical test reactivated successfully')
       await loadTests()
-
-
     } catch (error) {
+      console.error('Unable to reactivate medical test:', error)
 
-      console.error(error)
+      const detail = error.response?.data?.detail
 
       setError(
-        error.response?.data?.detail ||
-        'Unable to reactivate medical test'
+        typeof detail === 'string'
+          ? detail
+          : 'Unable to reactivate medical test'
       )
-
     }
-
   }
 
-
-  // =====================================================
-  // LOADING
-  // =====================================================
-
+  // Loading
   if (loading) {
-
     return (
-
       <div className="container py-5">
-
         <div className="text-center">
-
           <div
             className="spinner-border text-primary"
             role="status"
           />
-
-          <p className="mt-3">
-            Loading medical tests...
-          </p>
-
+          <p className="mt-3">Loading medical tests...</p>
         </div>
-
       </div>
-
     )
-
   }
 
-
-  // =====================================================
-  // PAGE
-  // =====================================================
-
   return (
-
     <div className="container-fluid py-4 px-4">
-
-
-      {/* =================================================
-          HEADER
-      ================================================= */}
-
+      {/* Header */}
       <div className="d-flex justify-content-between align-items-center mb-4">
-
         <div>
-
-          <h1 className="fw-bold">
-            Medical Test Management
-          </h1>
-
+          <h1 className="fw-bold">Medical Test Management</h1>
           <p className="text-muted mb-0">
             Manage medical tests of your laboratory
           </p>
-
         </div>
 
-
         <div className="d-flex gap-2">
-
           <button
+            type="button"
             className="btn btn-outline-secondary"
-            onClick={() =>
+            onClick={() => {
               window.location.href = '/admin'
-            }
+            }}
           >
             ← Admin Dashboard
           </button>
 
-
           <button
+            type="button"
             className="btn btn-primary"
             onClick={() => {
+              if (!showForm) {
+                clearForm()
+              }
 
-              clearForm()
-
-              setShowForm(
-                !showForm
-              )
-
+              setShowForm(!showForm)
               setError('')
-
               setSuccess('')
-
             }}
           >
             + Add Test
           </button>
-
         </div>
-
       </div>
 
-
-      {/* =================================================
-          SUCCESS MESSAGE
-      ================================================= */}
-
+      {/* Success Message */}
       {success && (
-
-        <div className="alert alert-success">
-
+        <div className="alert alert-success" role="alert">
           {success}
-
         </div>
-
       )}
 
-
-      {/* =================================================
-          ERROR MESSAGE
-      ================================================= */}
-
+      {/* Error Message */}
       {error && (
-
-        <div className="alert alert-danger">
-
+        <div className="alert alert-danger" role="alert">
           {error}
-
         </div>
-
       )}
 
-
-      {/* =================================================
-          ADD / EDIT FORM
-      ================================================= */}
-
+      {/* Add / Edit Form */}
       {showForm && (
-
         <div className="card shadow-sm mb-4">
-
           <div className="card-body">
-
             <h4 className="fw-bold mb-4">
-
               {editingTest
                 ? 'Edit Medical Test'
                 : 'Add New Medical Test'}
-
             </h4>
 
-
             <form onSubmit={handleSubmit}>
-
               <div className="row">
-
-
-                {/* TEST NAME */}
-
                 <div className="col-md-6 mb-3">
-
-                  <label className="form-label fw-semibold">
-
+                  <label
+                    htmlFor="testName"
+                    className="form-label fw-semibold"
+                  >
                     Test Name
-
                   </label>
 
                   <input
+                    id="testName"
                     type="text"
                     className="form-control"
                     value={testName}
                     onChange={(event) =>
-                      setTestName(
-                        event.target.value
-                      )
+                      setTestName(event.target.value)
                     }
                     placeholder="Enter test name"
                     required
                   />
-
                 </div>
 
-
-                {/* CATEGORY */}
-
                 <div className="col-md-6 mb-3">
-
-                  <label className="form-label fw-semibold">
-
+                  <label
+                    htmlFor="testCategory"
+                    className="form-label fw-semibold"
+                  >
                     Category
-
                   </label>
 
                   <input
+                    id="testCategory"
                     type="text"
                     className="form-control"
                     value={category}
                     onChange={(event) =>
-                      setCategory(
-                        event.target.value
-                      )
+                      setCategory(event.target.value)
                     }
                     placeholder="Example: Blood Test"
                     required
                   />
-
                 </div>
 
-
-                {/* PRICE */}
-
                 <div className="col-md-6 mb-3">
-
-                  <label className="form-label fw-semibold">
-
+                  <label
+                    htmlFor="testPrice"
+                    className="form-label fw-semibold"
+                  >
                     Price
-
                   </label>
 
                   <input
+                    id="testPrice"
                     type="number"
                     className="form-control"
                     value={price}
                     onChange={(event) =>
-                      setPrice(
-                        event.target.value
-                      )
+                      setPrice(event.target.value)
                     }
                     placeholder="Enter price"
                     min="0"
                     step="0.01"
                     required
                   />
-
                 </div>
 
-
-                {/* DURATION */}
-
                 <div className="col-md-6 mb-3">
-
-                  <label className="form-label fw-semibold">
-
+                  <label
+                    htmlFor="testDuration"
+                    className="form-label fw-semibold"
+                  >
                     Duration (Minutes)
-
                   </label>
 
                   <input
+                    id="testDuration"
                     type="number"
                     className="form-control"
                     value={duration}
                     onChange={(event) =>
-                      setDuration(
-                        event.target.value
-                      )
+                      setDuration(event.target.value)
                     }
                     placeholder="Example: 30"
                     min="1"
                     required
                   />
-
                 </div>
 
-
-                {/* DESCRIPTION */}
-
                 <div className="col-12 mb-3">
-
-                  <label className="form-label fw-semibold">
-
+                  <label
+                    htmlFor="testDescription"
+                    className="form-label fw-semibold"
+                  >
                     Description
-
                   </label>
 
                   <textarea
+                    id="testDescription"
                     className="form-control"
                     rows="3"
                     value={description}
                     onChange={(event) =>
-                      setDescription(
-                        event.target.value
-                      )
+                      setDescription(event.target.value)
                     }
                     placeholder="Enter test description"
                   />
-
                 </div>
-
               </div>
 
-
-              {/* FORM BUTTONS */}
-
               <div className="d-flex gap-2">
-
                 <button
                   type="submit"
                   className="btn btn-primary"
                 >
-
-                  {editingTest
-                    ? 'Update Test'
-                    : 'Add Test'}
-
+                  {editingTest ? 'Update Test' : 'Add Test'}
                 </button>
-
 
                 <button
                   type="button"
                   className="btn btn-secondary"
                   onClick={() => {
-
                     clearForm()
-
                     setShowForm(false)
-
                   }}
                 >
-
                   Cancel
-
                 </button>
-
               </div>
-
             </form>
-
           </div>
-
         </div>
-
       )}
 
-
-      {/* =================================================
-          TEST LIST
-      ================================================= */}
-
+      {/* Test List */}
       <div className="card shadow-sm">
-
         <div className="card-body">
-
-
-          {/* TEST LIST HEADER */}
-
           <div className="d-flex justify-content-between align-items-center mb-3">
-
             <h3 className="fw-bold mb-0">
-
               Laboratory Medical Tests
-
             </h3>
 
-
             <span className="badge bg-primary">
-
               {tests.length} Tests
-
             </span>
-
           </div>
 
-
-          {/* NO TESTS */}
-
           {tests.length === 0 ? (
-
             <div className="alert alert-info mb-0">
-
               No medical tests available.
-
             </div>
-
           ) : (
-
             <div className="table-responsive">
-
               <table className="table table-hover align-middle">
-
                 <thead>
-
                   <tr>
-
                     <th>ID</th>
-
                     <th>Test Name</th>
-
                     <th>Category</th>
-
                     <th>Price</th>
-
                     <th>Duration</th>
-
                     <th>Status</th>
-
                     <th>Action</th>
-
                   </tr>
-
                 </thead>
 
-
                 <tbody>
-
                   {tests.map((test) => (
-
-                    <tr
-                      key={test.test_id}
-                    >
-
-                      {/* ID */}
-
-                      <td>
-                        #{test.test_id}
-                      </td>
-
-
-                      {/* NAME */}
+                    <tr key={test.test_id}>
+                      <td>#{test.test_id}</td>
 
                       <td className="fw-semibold">
-
                         {test.test_name}
-
                       </td>
 
-
-                      {/* CATEGORY */}
+                      <td>{test.category || '-'}</td>
 
                       <td>
-
-                        {test.category || '-'}
-
+                        ₹{Number(test.price).toFixed(2)}
                       </td>
 
-
-                      {/* PRICE */}
-
-                      <td>
-
-                        ₹{test.price}
-
-                      </td>
-
-
-                      {/* DURATION */}
+                      <td>{test.duration_minutes} min</td>
 
                       <td>
-
-                        {test.duration_minutes} min
-
-                      </td>
-
-
-                      {/* STATUS */}
-
-                      <td>
-
                         <span
                           className={
                             test.is_active
@@ -855,95 +480,53 @@ function AdminTests() {
                               : 'badge bg-danger'
                           }
                         >
-
-                          {test.is_active
-                            ? 'Active'
-                            : 'Inactive'}
-
+                          {test.is_active ? 'Active' : 'Inactive'}
                         </span>
-
                       </td>
-
-
-                      {/* ACTION */}
 
                       <td>
-
-                        <div className="d-flex gap-2">
-
-
-                          {/* EDIT */}
-
+                        <div className="d-flex gap-2 flex-wrap">
                           <button
+                            type="button"
                             className="btn btn-sm btn-outline-primary"
-                            onClick={() =>
-                              handleEdit(test)
-                            }
+                            onClick={() => handleEdit(test)}
                           >
-
                             Edit
-
                           </button>
 
-
-                          {/* DEACTIVATE / REACTIVATE */}
-
                           {test.is_active ? (
-
                             <button
+                              type="button"
                               className="btn btn-sm btn-outline-danger"
                               onClick={() =>
-                                handleDeactivate(
-                                  test.test_id
-                                )
+                                handleDeactivate(test.test_id)
                               }
                             >
-
                               Deactivate
-
                             </button>
-
                           ) : (
-
                             <button
+                              type="button"
                               className="btn btn-sm btn-outline-success"
                               onClick={() =>
-                                handleReactivate(
-                                  test.test_id
-                                )
+                                handleReactivate(test.test_id)
                               }
                             >
-
                               Reactivate
-
                             </button>
-
                           )}
-
                         </div>
-
                       </td>
-
                     </tr>
-
                   ))}
-
                 </tbody>
-
               </table>
-
             </div>
-
           )}
-
         </div>
-
       </div>
-
     </div>
-
   )
 }
-
 
 export default AdminTests
